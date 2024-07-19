@@ -3,12 +3,12 @@
     {
       "content": "apple",
       "id": 1,
-      "amount": 4
+      "amount": 22
     },
     {
       "content": "peach",
       "id": 2,
-      "amount": 4
+      "amount": 28
     }
   ],
   "inventory": [

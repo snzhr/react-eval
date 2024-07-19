@@ -109,6 +109,7 @@ const View = (() => {
   const cartContainer = document.querySelector(".cart-container ul");
   const checkoutBtn = document.querySelector(".checkout-btn");
 
+  // rendering inventory
   const renderInventory = (inventory) => {
     let tempInventory = "";
     inventory.forEach(({ id, content }) => {
@@ -127,8 +128,10 @@ const View = (() => {
     inventoryContainer.innerHTML = tempInventory;
   };
 
+
+  // rendering cart
   const renderCart = (cart) => {
-    let tempInventory = "";
+    let tempCart = "";
     cart.forEach(({ id, content, amount }) => {
       const productTemplate = `
          <li id="${id}">
@@ -138,10 +141,10 @@ const View = (() => {
             <button class="btn-delete-from-cart">delete</button>
           </li>
         `;
-      tempInventory += productTemplate;
+        tempCart += productTemplate;
     });
 
-    cartContainer.innerHTML = tempInventory;
+    cartContainer.innerHTML = tempCart;
   };
 
   return {
@@ -149,7 +152,7 @@ const View = (() => {
     renderCart,
     inventoryContainer,
     cartContainer,
-    checkoutBtn
+    checkoutBtn,
   };
 })();
 
@@ -157,23 +160,48 @@ const Controller = ((model, view) => {
   // implement your logic for Controller
   const state = new model.State();
 
-  const { getInventory, getCart, addToCart, updateCart, deleteFromCart,checkout } = model;
-  const { renderInventory, renderCart, inventoryContainer, cartContainer, checkoutBtn } = view;
+  // desctruring model and view objects
+  const {
+    getInventory,
+    getCart,
+    addToCart,
+    updateCart,
+    deleteFromCart,
+    checkout,
+  } = model;
+  const {
+    renderInventory,
+    renderCart,
+    inventoryContainer,
+    cartContainer,
+    checkoutBtn,
+  } = view;
 
   const init = () => {
+    // subscribing for cart changes
     state.subscribe(() => {
       renderCart(state.cart);
     });
 
+    // getting all invetory and initial rendering
     getInventory().then((data) => {
       state.inventory = data;
       renderInventory(data);
     });
+
+    // getting cart and storing in state
+    // as we subscribe to cart change, it will renrender
+    // when change happens
     getCart().then((data) => {
       state.cart = data;
     });
   };
+
+  // handling inventory amount update
+  // updating it just locally, just the text content
   const handleUpdateAmount = () => {
+    // adding an eventlistener to the parent element
+    // so we do not need to use loop here
     inventoryContainer.addEventListener("click", ({ target }) => {
       let amount;
       if (target.className === "btn-decrease") {
@@ -186,52 +214,63 @@ const Controller = ((model, view) => {
         amount = parseInt(target.previousSibling.previousSibling.textContent);
         target.previousSibling.previousSibling.textContent = amount + 1;
       }
-
     });
   };
 
-  const handleAddToCart = () => {
-    inventoryContainer.addEventListener("click", ({ target }) => {
 
+  // handling add product to cart feature
+  const handleAddToCart = () => {
+    // adding an eventlistener to the parent element
+    // so we do not need to use loop here
+
+    inventoryContainer.addEventListener("click", ({ target }) => {
       if (target.className === "btn-add-to-cart") {
-        let amount = parseInt(target.parentNode.querySelector(':nth-child(3)').textContent);
-        const itemInInventory = state.inventory.find(item => item.id === parseInt(target.parentElement.id));
-        const itemInCart = state.cart.find(item => item.id === parseInt(target.parentElement.id));
+        let amount = parseInt(
+          target.parentNode.querySelector(":nth-child(3)").textContent
+        );
+        const itemInInventory = state.inventory.find(
+          (item) => item.id === parseInt(target.parentElement.id)
+        );
+        const itemInCart = state.cart.find(
+          (item) => item.id === parseInt(target.parentElement.id)
+        );
         const item = {
           ...itemInInventory,
-          amount
-        }
+          amount,
+        };
 
-
+        // if item doesn't exist in cart, then add it to cart
         if (amount !== 0 && !itemInCart) {
-          addToCart(item).then(res => state.cart = [...state.cart, res]);
+          addToCart(item).then((res) => (state.cart = [...state.cart, res]));
         }
 
-
+        // if exists, then update the amount of it
+        // and updating the cart
         if (itemInCart) {
-          amount += itemInCart.amount
+          amount += itemInCart.amount;
           updateCart(itemInCart.id, amount)
-          .then(res => getCart())
-          .then(data => state.cart = data)
+            .then((res) => getCart())
+            .then((data) => (state.cart = data));
         }
       }
     });
   };
 
   const handleDelete = () => {
-    cartContainer.addEventListener("click", ({target}) => {
+    cartContainer.addEventListener("click", ({ target }) => {
       if (target.className === "btn-delete-from-cart") {
         const id = target.parentElement.id;
-        deleteFromCart(id).then(res => getCart())
-        .then(res => state.cart = res)
+        deleteFromCart(id)
+          .then((res) => getCart())
+          .then((res) => (state.cart = res));
       }
     });
   };
 
   const handleCheckout = () => {
-      checkoutBtn.addEventListener("click", (e) => {
-        checkout().then(res => state.cart = []);
-      });
+    checkoutBtn.addEventListener("click", (e) => {
+      checkout().then((res) => (state.cart = []));
+    });
   };
   const bootstrap = () => {
     init();
